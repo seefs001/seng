@@ -10,9 +10,9 @@ type Router struct {
 
 func (r *Router) RequestHandler(c *fasthttp.RequestCtx) {
 	if handler, ok := r.Routes[string(c.Path())]; ok {
-		err := handler(&Context{
-			Fasthttp: c,
-		})
+		ctx := &Context{}
+		ctx.set(c)
+		err := handler(ctx)
 		if err != nil {
 			// TODO error handler
 		}
