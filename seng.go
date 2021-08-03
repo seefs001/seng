@@ -26,7 +26,15 @@ type Config struct {
 // New 新建Engine实例
 func New(config ...Config) *Engine {
 
-	router := &Router{Routes: make(map[string]Handler)}
+	router := &Router{
+		Routes: make(map[string]Handler),
+		ErrorHandler: func(c *Context) error {
+			return c.JSON(Response{
+				Code: 404,
+				Msg:  "Not Found",
+			})
+		},
+	}
 
 	server := &fasthttp.Server{
 		Name:    config[0].Name,

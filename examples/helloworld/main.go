@@ -10,11 +10,12 @@ func main() {
 		return c.String("aaa")
 	})
 	engine.Get("/abc", func(c *seng.Context) error {
-		c.SetCookie("test", "cookietest")
-		c.SetHeader("test-header", "xxxxx")
+		query := c.QueryDefaultValue("test", "testdefault")
+		c.SetCookieKV("test", "cookietest")
+		c.SetHeaderKV("test-header", "xxxxx")
 		return c.JSON(seng.Response{
 			Code: 200,
-			Msg:  "success",
+			Msg:  query,
 		})
 	})
 	err := engine.Run(":8080")

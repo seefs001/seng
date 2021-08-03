@@ -23,6 +23,9 @@ type Context struct {
 	host       []byte
 	remoteAddr net.Addr
 
+	queryParams []Params
+	postForm    []Params
+
 	header *Header
 	engine *Engine
 }
@@ -41,20 +44,49 @@ func (c *Context) set(fasthttp *fasthttp.RequestCtx) {
 	c.host = c.Fasthttp.Host()
 	c.header = &Header{Fasthttp: &c.Fasthttp.Request.Header}
 	c.remoteAddr = c.Fasthttp.RemoteAddr()
+	// args
+	c.Fasthttp.QueryArgs().VisitAll(func(key, value []byte) {
+		c.queryParams = append(c.queryParams, Params{
+			Key:   utils.Bytes2String(key),
+			Value: utils.Bytes2String(value),
+		})
+	})
+	c.Fasthttp.PostArgs().VisitAll(func(key, value []byte) {
+		c.postForm = append(c.postForm, Params{
+			Key:   utils.Bytes2String(key),
+			Value: utils.Bytes2String(value),
+		})
+	})
 }
 
 func (c *Context) Cookie(key string) []byte {
 	return c.Fasthttp.Request.Header.Cookie(key)
 }
 
-func (c *Context) SetCookie(key string, value string) {
+func (c *Context) SetCookieKV(key string, value string) {
 	//c.Fasthttp.Request.Header.Set(key, value)
 	c.Fasthttp.Response.Header.Set(key, value)
 
-	var cookie fasthttp.Cookie
+	cookie := fasthttp.AcquireCookie()
 	cookie.SetKey("cookie-name")
 	cookie.SetValue("cookie-value")
-	c.Fasthttp.Response.Header.SetCookie(&cookie)
+	c.Fasthttp.Response.Header.SetCookie(cookie)
+}
+
+func (c *Context) Set(key string, value interface{}) {
+	c.Fasthttp.SetUserValue(key, value)
+}
+
+func (c *Context) SetUserValueBytes(key []byte, value interface{}) {
+	c.Fasthttp.SetUserValueBytes(key, value)
+}
+
+func (c *Context) UserValue(key string) interface{} {
+	return c.Fasthttp.UserValue(key)
+}
+
+func (c *Context) UserValueBytes(key []byte) interface{} {
+	return c.Fasthttp.UserValueBytes(key)
 }
 
 func (c *Context) SetContentType(key string) {
@@ -77,7 +109,7 @@ func (c *Context) Header() *Header {
 	return c.header
 }
 
-func (c *Context) SetHeader(key string, value string) {
+func (c *Context) SetHeaderKV(key string, value string) {
 	c.Fasthttp.Response.Header.Set(key, value)
 }
 
@@ -93,12 +125,28 @@ func (c *Context) Host() []byte {
 	return c.host
 }
 
-func (c *Context) PostForm() *fasthttp.Args {
-	return c.Fasthttp.PostArgs()
+func (c *Context) PostForm() []Params {
+	return c.postForm
 }
 
-func (c *Context) QueryParams() *fasthttp.Args {
-	return c.Fasthttp.QueryArgs()
+func (c *Context) QueryParams() []Params {
+	return c.queryParams
+}
+
+func (c *Context) Query(key string) (string, error) {
+	data := c.Fasthttp.QueryArgs().Peek(key)
+	if data == nil {
+		return "", ErrQueryParamNotFound
+	}
+	return utils.Bytes2String(data), nil
+}
+
+func (c *Context) QueryDefaultValue(key string, defaultValue string) string {
+	query, err := c.Query(key)
+	if err != nil {
+		return defaultValue
+	}
+	return query
 }
 
 func (c *Context) FormValue(key string) []byte {
