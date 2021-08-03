@@ -10,7 +10,7 @@ import (
 type Engine struct {
 	sync.Mutex
 
-	route  *Router
+	router *Router
 	config Config
 	server *fasthttp.Server
 }
@@ -21,20 +21,14 @@ type Config struct {
 	Name string `json:"name"`
 	// 监听地址
 	Addr string `json:"addr"`
+	// NotFoundHandler
+	NotFoundHandler Handler `json:"error_handler"`
 }
 
 // New 新建Engine实例
 func New(config ...Config) *Engine {
 
-	router := &Router{
-		Routes: make(map[string]Handler),
-		ErrorHandler: func(c *Context) error {
-			return c.JSON(Response{
-				Code: 404,
-				Msg:  "Not Found",
-			})
-		},
-	}
+	router := NewRouter(config[0].NotFoundHandler)
 
 	server := &fasthttp.Server{
 		Name:    config[0].Name,
@@ -44,7 +38,7 @@ func New(config ...Config) *Engine {
 	engine := &Engine{
 		config: config[0],
 		server: server,
-		route:  router,
+		router: router,
 	}
 	return engine
 }
@@ -108,5 +102,5 @@ func (e *Engine) Run(addr string) error {
 }
 
 func (e *Engine) Get(path string, handler Handler) {
-	e.route.Get(path, handler)
+	e.router.Get(path, handler)
 }

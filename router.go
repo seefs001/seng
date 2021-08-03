@@ -1,6 +1,7 @@
 package seng
 
 import (
+	"strings"
 	"sync"
 
 	"github.com/seefs001/seng/utils"
@@ -18,8 +19,26 @@ func init() {
 }
 
 type Router struct {
-	Routes       map[string]Handler
-	ErrorHandler Handler
+	Routes          *RouteTrie
+	NotFoundHandler Handler
+}
+
+func NewRouter(notFoundHandler ...Handler) *Router {
+
+	handler := func(c *Context) error {
+		return c.JSON(Response{
+			Code: 404,
+			Msg:  "Not Found",
+		})
+	}
+	if notFoundHandler[0] != nil {
+		handler = notFoundHandler[0]
+	}
+
+	return &Router{
+		Routes:          NewRouterTrie(),
+		NotFoundHandler: handler,
+	}
 }
 
 func (r *Router) RequestHandler(c *fasthttp.RequestCtx) {
@@ -29,7 +48,7 @@ func (r *Router) RequestHandler(c *fasthttp.RequestCtx) {
 	if err != nil {
 		// TODO error handler
 		if err == ErrNotFoundRoute {
-			err := r.ErrorHandler(ctx)
+			err := r.NotFoundHandler(ctx)
 			if err != nil {
 				// TODO error handler
 				return
@@ -81,16 +100,24 @@ func (r *Router) Options(path string, handler Handler) {
 }
 
 func (r *Router) add(method string, path string, handler Handler) {
-	key := method + "-" + path
-	r.Routes[key] = handler
+	key := "/" + strings.ToLower(method) + path
+	r.Routes.add(key, handler)
 }
 
 func (r *Router) match(path string, method string) (Handler, error) {
 	// TODO 模糊匹配
-	key := method + "-" + path
-	if handler, ok := r.Routes[key]; !ok {
+	key := "/" + strings.ToLower(method) + path
+	if handler, ok := r.searchTrie(key); !ok {
 		return nil, ErrNotFoundRoute
 	} else {
 		return handler, nil
 	}
+}
+
+func (r *Router) searchTrie(key string) (Handler, bool) {
+	node, _, handler := r.Routes.findNode(strings.Split(key, "/")[1:])
+	if node == nil {
+		return nil, false
+	}
+	return handler, true
 }
