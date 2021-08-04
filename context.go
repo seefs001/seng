@@ -22,6 +22,7 @@ type Context struct {
 	method     []byte
 	host       []byte
 	remoteAddr net.Addr
+	statusCode int
 
 	queryParams []Params
 	postForm    []Params
@@ -63,7 +64,7 @@ func (c *Context) Cookie(key string) []byte {
 	return c.Fasthttp.Request.Header.Cookie(key)
 }
 
-func (c *Context) SetCookieKV(key string, value string) {
+func (c *Context) SetCookieKV(key string, value string) *Context {
 	//c.Fasthttp.Request.Header.Set(key, value)
 	c.Fasthttp.Response.Header.Set(key, value)
 
@@ -71,14 +72,18 @@ func (c *Context) SetCookieKV(key string, value string) {
 	cookie.SetKey("cookie-name")
 	cookie.SetValue("cookie-value")
 	c.Fasthttp.Response.Header.SetCookie(cookie)
+
+	return c
 }
 
-func (c *Context) Set(key string, value interface{}) {
+func (c *Context) Set(key string, value interface{}) *Context {
 	c.Fasthttp.SetUserValue(key, value)
+	return c
 }
 
-func (c *Context) SetUserValueBytes(key []byte, value interface{}) {
+func (c *Context) SetUserValueBytes(key []byte, value interface{}) *Context {
 	c.Fasthttp.SetUserValueBytes(key, value)
+	return c
 }
 
 func (c *Context) UserValue(key string) interface{} {
@@ -89,8 +94,9 @@ func (c *Context) UserValueBytes(key []byte) interface{} {
 	return c.Fasthttp.UserValueBytes(key)
 }
 
-func (c *Context) SetContentType(key string) {
+func (c *Context) SetContentType(key string) *Context {
 	c.Fasthttp.Request.Header.SetContentType(key)
+	return c
 }
 
 func (c *Context) Path() []byte {
@@ -161,8 +167,13 @@ func (c *Context) MultipartForm() (*multipart.Form, error) {
 	return c.Fasthttp.MultipartForm()
 }
 
-func (c *Context) String(msg string) error {
-	_, err := fmt.Fprint(c.Fasthttp, msg)
+func (c *Context) RemoteIP() net.IP {
+	return c.Fasthttp.RemoteIP()
+}
+
+func (c *Context) String(format string) error {
+	c.SetHeaderKV("Content-Type", "text/plain")
+	_, err := fmt.Fprint(c.Fasthttp, format)
 	if err != nil {
 		return err
 	}
@@ -170,6 +181,7 @@ func (c *Context) String(msg string) error {
 }
 
 func (c *Context) JSON(data interface{}) error {
+	c.SetHeaderKV("Content-Type", "application/json")
 	d, err := json.Marshal(data)
 	if err != nil {
 		return err
@@ -179,4 +191,23 @@ func (c *Context) JSON(data interface{}) error {
 		return err
 	}
 	return nil
+}
+
+func (c *Context) HTML(data interface{}) error {
+	c.SetHeaderKV("Content-Type", "text/html")
+	_, err := fmt.Fprint(c.Fasthttp, data)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Context) Status(status int) *Context {
+	c.statusCode = status
+	c.Fasthttp.Response.SetStatusCode(status)
+	return c
+}
+
+func (c *Context) SaveFile(fileheader *multipart.FileHeader, path string) error {
+	return fasthttp.SaveMultipartFile(fileheader, path)
 }

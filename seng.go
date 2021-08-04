@@ -9,7 +9,9 @@ import (
 // Engine app
 type Engine struct {
 	sync.Mutex
+	*RouterGroup
 
+	groups []*RouterGroup
 	router *Router
 	config Config
 	server *fasthttp.Server
@@ -40,6 +42,8 @@ func New(config ...Config) *Engine {
 		server: server,
 		router: router,
 	}
+	engine.RouterGroup = &RouterGroup{engine: engine}
+	engine.groups = []*RouterGroup{engine.RouterGroup}
 	return engine
 }
 
@@ -47,41 +51,6 @@ type Response struct {
 	Code int    `json:"code"`
 	Msg  string `json:"msg"`
 }
-
-//func requestHandler(ctx *fasthttp.RequestCtx) {
-//	fmt.Println(string(ctx.Path()))
-//	if handler,ok := Routes[string(ctx.Path())];ok {
-//		handler(&Context{
-//			ctx,
-//		})
-//	}
-//
-//	//fmt.Fprintf(ctx, "Hello, world!\n\n")
-//	//
-//	//fmt.Fprintf(ctx, "Request method is %q\n", ctx.Method())
-//	//fmt.Fprintf(ctx, "RequestURI is %q\n", ctx.RequestURI())
-//	//fmt.Fprintf(ctx, "Requested path is %q\n", ctx.Path())
-//	//fmt.Fprintf(ctx, "Host is %q\n", ctx.Host())
-//	//fmt.Fprintf(ctx, "Query string is %q\n", ctx.QueryArgs())
-//	//fmt.Fprintf(ctx, "User-Agent is %q\n", ctx.UserAgent())
-//	//fmt.Fprintf(ctx, "Connection has been established at %s\n", ctx.ConnTime())
-//	//fmt.Fprintf(ctx, "Request has been started at %s\n", ctx.Time())
-//	//fmt.Fprintf(ctx, "Serial request number for the current connection is %d\n", ctx.ConnRequestNum())
-//	//fmt.Fprintf(ctx, "Your ip is %q\n\n", ctx.RemoteIP())
-//	//
-//	//fmt.Fprintf(ctx, "Raw request is:\n---CUT---\n%s\n---CUT---", &ctx.Request)
-//	//
-//	//ctx.SetContentType("text/plain; charset=utf8")
-//	//
-//	//// Set arbitrary headers
-//	//ctx.Response.Header.Set("X-My-Header", "my-header-value")
-//	//
-//	//// Set cookies
-//	//var c fasthttp.Cookie
-//	//c.SetKey("cookie-name")
-//	//c.SetValue("cookie-value")
-//	//ctx.Response.Header.SetCookie(&c)
-//}
 
 func Default() *Engine {
 
@@ -101,6 +70,46 @@ func (e *Engine) Run(addr string) error {
 	return e.server.ListenAndServe(addr)
 }
 
-func (e *Engine) Get(path string, handler Handler) {
+func (e *Engine) Get(path string, handler Handler) *Engine {
 	e.router.Get(path, handler)
+	return e
+}
+
+func (e *Engine) Post(path string, handler Handler) *Engine {
+	e.router.add(MethodPost, path, handler)
+	return e
+}
+
+func (e *Engine) Put(path string, handler Handler) *Engine {
+	e.router.add(MethodPut, path, handler)
+	return e
+}
+
+func (e *Engine) Delete(path string, handler Handler) *Engine {
+	e.router.add(MethodDelete, path, handler)
+	return e
+}
+func (e *Engine) Head(path string, handler Handler) *Engine {
+	e.router.add(MethodHead, path, handler)
+	return e
+}
+
+func (e *Engine) Patch(path string, handler Handler) *Engine {
+	e.router.add(MethodPatch, path, handler)
+	return e
+}
+
+func (e *Engine) Connect(path string, handler Handler) *Engine {
+	e.router.add(MethodConnect, path, handler)
+	return e
+}
+
+func (e *Engine) Trace(path string, handler Handler) *Engine {
+	e.router.add(MethodTrace, path, handler)
+	return e
+}
+
+func (e *Engine) Options(path string, handler Handler) *Engine {
+	e.router.add(MethodOptions, path, handler)
+	return e
 }

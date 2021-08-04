@@ -6,8 +6,21 @@ import (
 
 func main() {
 	engine := seng.Default()
-	engine.Get("/aaaa", func(c *seng.Context) error {
+	engine.Get("/api/aaaa", func(c *seng.Context) error {
 		return c.String("aaa")
+	})
+
+	engine.Get("/api/aaaa/test", func(c *seng.Context) error {
+		return c.JSON(seng.Response{
+			Code: 0,
+			Msg:  "test",
+		})
+	})
+	engine.Get("/api/*", func(c *seng.Context) error {
+		return c.JSON(seng.Response{
+			Code: 1,
+			Msg:  "wild",
+		})
 	})
 	engine.Get("/abc", func(c *seng.Context) error {
 		query := c.QueryDefaultValue("test", "testdefault")
