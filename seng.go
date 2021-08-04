@@ -1,115 +1,131 @@
 package seng
 
 import (
+	"net/http"
 	"sync"
-
-	"github.com/valyala/fasthttp"
 )
 
-// Engine app
 type Engine struct {
 	sync.Mutex
-	*RouterGroup
 
-	groups []*RouterGroup
-	router *Router
-	config Config
-	server *fasthttp.Server
+	CtxPool sync.Pool
+
+	routes    map[string][]*Route
+	treeStack []map[string][]*Route
+	config    Config
 }
 
-// Config 配置
-type Config struct {
-	// 服务器名
-	Name string `json:"name"`
-	// 监听地址
-	Addr string `json:"addr"`
-	// NotFoundHandler
-	NotFoundHandler Handler `json:"error_handler"`
-}
+func New(config Config) *Engine {
 
-// New 新建Engine实例
-func New(config ...Config) *Engine {
-
-	router := NewRouter(config[0].NotFoundHandler)
-
-	server := &fasthttp.Server{
-		Name:    config[0].Name,
-		Handler: router.RequestHandler,
+	e := &Engine{
+		CtxPool: sync.Pool{
+			New: func() interface{} {
+				return NewContext(nil, nil)
+			},
+		},
+		routes: make(map[string][]*Route),
+		config: config,
 	}
 
-	engine := &Engine{
-		config: config[0],
-		server: server,
-		router: router,
-	}
-	engine.RouterGroup = &RouterGroup{engine: engine}
-	engine.groups = []*RouterGroup{engine.RouterGroup}
-	return engine
-}
-
-type Response struct {
-	Code int    `json:"code"`
-	Msg  string `json:"msg"`
+	return e
 }
 
 func Default() *Engine {
 
 	defaultConfig := Config{
-		Name: "My Web Application",
+		StrictRouting: false,
+		CaseSensitive: true,
+		GETOnly:       false,
+		ErrorHandler: func(ctx *Context) error {
+			return ctx.Status(http.StatusInternalServerError).Text("server error")
+		},
+		NotFoundHandler: func(c *Context) error {
+			return c.Status(http.StatusNotFound).Text("not found")
+		},
+		DisableKeepalive: false,
+		AppName:          "Seng Web Application",
+		Addr:             "0.0.0.0:8080",
 	}
 
-	engine := New(defaultConfig)
-	engine.server.ErrorHandler = func(ctx *fasthttp.RequestCtx, err error) {
-		ctx.Error("xxxx", 200)
+	e := New(defaultConfig)
+
+	return e
+}
+
+func (e *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx := e.CtxPool.Get().(*Context).ReSet(r, w)
+	handlerFuncs, b := e.matchRoute(ctx.method, ctx.path)
+	if !b {
+		err := e.config.NotFoundHandler(ctx)
+		if err != nil {
+			return
+		}
 	}
-	// TODO Logger和Revocer
-	return engine
+	for _, h := range handlerFuncs {
+		h(ctx)
+	}
 }
 
-func (e *Engine) Run(addr string) error {
-	return e.server.ListenAndServe(addr)
+func (e *Engine) matchRoute(method string, pattern string) ([]HandlerFunc, bool) {
+	if routes, ok := e.routes[method]; !ok {
+		return nil, false
+	} else {
+		for _, route := range routes {
+			if route.Path == pattern {
+				return route.Handlers, true
+			}
+		}
+		return nil, false
+	}
 }
 
-func (e *Engine) Get(path string, handler Handler) *Engine {
-	e.router.Get(path, handler)
-	return e
+func (e *Engine) Get(pattern string, handler ...HandlerFunc) {
+	e.addRoute(MethodGet, pattern, handler...)
 }
 
-func (e *Engine) Post(path string, handler Handler) *Engine {
-	e.router.add(MethodPost, path, handler)
-	return e
+func (e *Engine) Head(pattern string, handler ...HandlerFunc) {
+	e.addRoute(MethodHead, pattern, handler...)
 }
 
-func (e *Engine) Put(path string, handler Handler) *Engine {
-	e.router.add(MethodPut, path, handler)
-	return e
+func (e *Engine) Post(pattern string, handler ...HandlerFunc) {
+	e.addRoute(MethodPost, pattern, handler...)
 }
 
-func (e *Engine) Delete(path string, handler Handler) *Engine {
-	e.router.add(MethodDelete, path, handler)
-	return e
-}
-func (e *Engine) Head(path string, handler Handler) *Engine {
-	e.router.add(MethodHead, path, handler)
-	return e
+func (e *Engine) Put(pattern string, handler ...HandlerFunc) {
+	e.addRoute(MethodPut, pattern, handler...)
 }
 
-func (e *Engine) Patch(path string, handler Handler) *Engine {
-	e.router.add(MethodPatch, path, handler)
-	return e
+func (e *Engine) Patch(pattern string, handler ...HandlerFunc) {
+	e.addRoute(MethodPatch, pattern, handler...)
 }
 
-func (e *Engine) Connect(path string, handler Handler) *Engine {
-	e.router.add(MethodConnect, path, handler)
-	return e
+func (e *Engine) Delete(pattern string, handler ...HandlerFunc) {
+	e.addRoute(MethodDelete, pattern, handler...)
 }
 
-func (e *Engine) Trace(path string, handler Handler) *Engine {
-	e.router.add(MethodTrace, path, handler)
-	return e
+func (e *Engine) Connect(pattern string, handler ...HandlerFunc) {
+	e.addRoute(MethodConnect, pattern, handler...)
 }
 
-func (e *Engine) Options(path string, handler Handler) *Engine {
-	e.router.add(MethodOptions, path, handler)
-	return e
+func (e *Engine) Trace(pattern string, handler ...HandlerFunc) {
+	e.addRoute(MethodTrace, pattern, handler...)
+}
+
+func (e *Engine) Options(pattern string, handler ...HandlerFunc) {
+	e.addRoute(MethodOptions, pattern, handler...)
+}
+
+func (e *Engine) addRoute(method string, pattern string, handler ...HandlerFunc) {
+	e.routes[method] = append(e.routes[method], &Route{
+		Method:   method,
+		Path:     pattern,
+		Handlers: handler,
+	})
+}
+
+func (e *Engine) Run(addr ...string) error {
+	if addr == nil {
+		addr[0] = e.config.Addr
+	}
+	return http.ListenAndServe(addr[0], e)
 }

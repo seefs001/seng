@@ -1,213 +1,72 @@
 package seng
 
 import (
-	"encoding/json"
-	"fmt"
-	"mime/multipart"
-	"net"
+	"context"
+	"net/http"
+	"net/url"
+	"sync"
 
-	"github.com/seefs001/seng/utils"
-	"github.com/valyala/fasthttp"
+	jsoniter "github.com/json-iterator/go"
 )
 
+const maxParams = 30
+
 type Context struct {
-	Fasthttp *fasthttp.RequestCtx
+	sync.Mutex
 
-	handlers []Handler
-	index    int8
-
-	fullPath   []byte
-	path       []byte
-	postBody   []byte
-	method     []byte
-	host       []byte
-	remoteAddr net.Addr
-	statusCode int
-
-	queryParams []Params
-	postForm    []Params
-
-	header *Header
 	engine *Engine
+
+	request        *http.Request
+	responseWriter http.ResponseWriter
+
+	status      int
+	baseURL     string
+	path        string
+	method      string
+	routeParams [maxParams]string
+	queryParams url.Values
+
+	UserContext context.Context
 }
 
-type Params struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
+func NewContext(w *http.Request, r http.ResponseWriter) *Context {
+	return &Context{
+		request:        w,
+		responseWriter: r,
+		UserContext:    context.Background(),
+	}
 }
 
-func (c *Context) set(fasthttp *fasthttp.RequestCtx) {
-	c.Fasthttp = fasthttp
-	c.path = c.Fasthttp.Path()
-	c.fullPath = c.Fasthttp.RequestURI()
-	c.postBody = c.Fasthttp.PostBody()
-	c.method = c.Fasthttp.Method()
-	c.host = c.Fasthttp.Host()
-	c.header = &Header{Fasthttp: &c.Fasthttp.Request.Header}
-	c.remoteAddr = c.Fasthttp.RemoteAddr()
-	// args
-	c.Fasthttp.QueryArgs().VisitAll(func(key, value []byte) {
-		c.queryParams = append(c.queryParams, Params{
-			Key:   utils.Bytes2String(key),
-			Value: utils.Bytes2String(value),
-		})
-	})
-	c.Fasthttp.PostArgs().VisitAll(func(key, value []byte) {
-		c.postForm = append(c.postForm, Params{
-			Key:   utils.Bytes2String(key),
-			Value: utils.Bytes2String(value),
-		})
-	})
-}
+func (c *Context) ReSet(r *http.Request, w http.ResponseWriter) *Context {
+	c.request = r
+	c.responseWriter = w
 
-func (c *Context) Cookie(key string) []byte {
-	return c.Fasthttp.Request.Header.Cookie(key)
-}
-
-func (c *Context) SetCookieKV(key string, value string) *Context {
-	//c.Fasthttp.Request.Header.Set(key, value)
-	c.Fasthttp.Response.Header.Set(key, value)
-
-	cookie := fasthttp.AcquireCookie()
-	cookie.SetKey("cookie-name")
-	cookie.SetValue("cookie-value")
-	c.Fasthttp.Response.Header.SetCookie(cookie)
-
+	c.path = r.URL.Path
+	c.method = r.Method
 	return c
 }
 
-func (c *Context) Set(key string, value interface{}) *Context {
-	c.Fasthttp.SetUserValue(key, value)
+func (c *Context) Text(format string) (err error) {
+	_, err = c.responseWriter.Write([]byte(format))
+	if err != nil {
+		return
+	}
+	return
+}
+
+func (c *Context) Status(code int) *Context {
+	c.responseWriter.WriteHeader(code)
 	return c
 }
 
-func (c *Context) SetUserValueBytes(key []byte, value interface{}) *Context {
-	c.Fasthttp.SetUserValueBytes(key, value)
-	return c
-}
-
-func (c *Context) UserValue(key string) interface{} {
-	return c.Fasthttp.UserValue(key)
-}
-
-func (c *Context) UserValueBytes(key []byte) interface{} {
-	return c.Fasthttp.UserValueBytes(key)
-}
-
-func (c *Context) SetContentType(key string) *Context {
-	c.Fasthttp.Request.Header.SetContentType(key)
-	return c
-}
-
-func (c *Context) Path() []byte {
-	return c.fullPath
-}
-
-func (c *Context) Body() []byte {
-	return c.postBody
-}
-
-func (c *Context) Method() []byte {
-	return c.method
-}
-
-func (c *Context) Header() *Header {
-	return c.header
-}
-
-func (c *Context) SetHeaderKV(key string, value string) {
-	c.Fasthttp.Response.Header.Set(key, value)
-}
-
-func (c *Context) RemoteAddr() net.Addr {
-	return c.remoteAddr
-}
-
-func (c *Context) GetHeader(key string) []byte {
-	return c.header.Get(key)
-}
-
-func (c *Context) Host() []byte {
-	return c.host
-}
-
-func (c *Context) PostForm() []Params {
-	return c.postForm
-}
-
-func (c *Context) QueryParams() []Params {
-	return c.queryParams
-}
-
-func (c *Context) Query(key string) (string, error) {
-	data := c.Fasthttp.QueryArgs().Peek(key)
-	if data == nil {
-		return "", ErrQueryParamNotFound
-	}
-	return utils.Bytes2String(data), nil
-}
-
-func (c *Context) QueryDefaultValue(key string, defaultValue string) string {
-	query, err := c.Query(key)
+func (c *Context) Json(data interface{}) (err error) {
+	marshal, err := jsoniter.Marshal(data)
 	if err != nil {
-		return defaultValue
+		return
 	}
-	return query
-}
-
-func (c *Context) FormValue(key string) []byte {
-	return c.Fasthttp.FormValue(key)
-}
-
-func (c *Context) FormFile(key string) (*multipart.FileHeader, error) {
-	return c.Fasthttp.FormFile(key)
-}
-
-func (c *Context) MultipartForm() (*multipart.Form, error) {
-	return c.Fasthttp.MultipartForm()
-}
-
-func (c *Context) RemoteIP() net.IP {
-	return c.Fasthttp.RemoteIP()
-}
-
-func (c *Context) String(format string) error {
-	c.SetHeaderKV("Content-Type", "text/plain")
-	_, err := fmt.Fprint(c.Fasthttp, format)
+	_, err = c.responseWriter.Write(marshal)
 	if err != nil {
-		return err
+		return
 	}
-	return nil
-}
-
-func (c *Context) JSON(data interface{}) error {
-	c.SetHeaderKV("Content-Type", "application/json")
-	d, err := json.Marshal(data)
-	if err != nil {
-		return err
-	}
-	_, err = fmt.Fprint(c.Fasthttp, utils.Bytes2String(d))
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (c *Context) HTML(data interface{}) error {
-	c.SetHeaderKV("Content-Type", "text/html")
-	_, err := fmt.Fprint(c.Fasthttp, data)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (c *Context) Status(status int) *Context {
-	c.statusCode = status
-	c.Fasthttp.Response.SetStatusCode(status)
-	return c
-}
-
-func (c *Context) SaveFile(fileheader *multipart.FileHeader, path string) error {
-	return fasthttp.SaveMultipartFile(fileheader, path)
+	return
 }

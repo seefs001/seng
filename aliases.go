@@ -1,15 +1,17 @@
 package seng
 
-import "github.com/valyala/fasthttp"
+import (
+	"net/http"
+)
 
 const (
-	MethodGet     = fasthttp.MethodGet
-	MethodHead    = fasthttp.MethodHead
-	MethodPost    = fasthttp.MethodPost
-	MethodPut     = fasthttp.MethodPut
-	MethodPatch   = fasthttp.MethodPatch
-	MethodDelete  = fasthttp.MethodDelete
-	MethodConnect = fasthttp.MethodConnect
-	MethodTrace   = fasthttp.MethodTrace
-	MethodOptions = fasthttp.MethodOptions
+	MethodGet     = http.MethodGet
+	MethodHead    = http.MethodHead
+	MethodPost    = http.MethodPost
+	MethodPut     = http.MethodPut
+	MethodPatch   = http.MethodPatch
+	MethodDelete  = http.MethodDelete
+	MethodConnect = http.MethodConnect
+	MethodTrace   = http.MethodTrace
+	MethodOptions = http.MethodOptions
 )

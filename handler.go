@@ -1,3 +1,4 @@
 package seng
 
-type Handler func(c *Context) error
+type ErrorHandler func(c *Context) error
+type HandlerFunc func(c *Context) error
