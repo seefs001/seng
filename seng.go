@@ -6,6 +6,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/seefs001/seng/utils"
 )
 
 // Version version of seng
@@ -156,6 +158,7 @@ func Default() *Engine {
 
 	// apply middlewares
 	// TODO
+	utils.ApplyDefaultMiddlewares(engine)
 	return engine
 }
 

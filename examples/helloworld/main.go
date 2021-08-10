@@ -30,6 +30,8 @@ func main() {
 		log.Default().Println("mv")
 		return nil
 	})
+	//routerGroup.Use(cors.Default())
+	//routerGroup.Use(recovery.Default())
 	routerGroup.GET("/mv", func(context *seng.Context) error {
 		data, exists := context.Get("x")
 		fmt.Println(exists)
