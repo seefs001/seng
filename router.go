@@ -103,7 +103,9 @@ func (r *Router) handle(c *Context) error {
 		} else {
 			c.handlers = append(c.handlers, c.engine.config.NotFoundErrorHandler)
 		}
+	} else {
+		return c.engine.config.NotFoundErrorHandler(c)
 	}
-	// not found
+	// handle
 	return c.Next()
 }

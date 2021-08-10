@@ -5,6 +5,8 @@ import (
 	"log"
 
 	"github.com/seefs001/seng"
+	"github.com/seefs001/seng/middlewares/cors"
+	"github.com/seefs001/seng/middlewares/recovery"
 )
 
 func main() {
@@ -30,8 +32,8 @@ func main() {
 		log.Default().Println("mv")
 		return nil
 	})
-	//routerGroup.Use(cors.Default())
-	//routerGroup.Use(recovery.Default())
+	routerGroup.Use(cors.Default())
+	routerGroup.Use(recovery.Default())
 	routerGroup.GET("/mv", func(context *seng.Context) error {
 		data, exists := context.Get("x")
 		fmt.Println(exists)

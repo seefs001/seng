@@ -6,8 +6,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/seefs001/seng/utils"
 )
 
 // Version version of seng
@@ -72,12 +70,13 @@ var DefaultNotFoundErrorHandler = func(c *Context) error {
 
 // defaultConfig default engine config
 var defaultConfig = Config{
-	StrictRouting:    false,
-	BodyLimit:        DefaultBodyLimit,
-	GETOnly:          false,
-	DisableKeepalive: false,
-	Debug:            true,
-	ErrorHandler:     DefaultErrorHandler,
+	StrictRouting:        false,
+	BodyLimit:            DefaultBodyLimit,
+	GETOnly:              false,
+	DisableKeepalive:     false,
+	Debug:                true,
+	ErrorHandler:         DefaultErrorHandler,
+	NotFoundErrorHandler: DefaultNotFoundErrorHandler,
 }
 
 // Engine struct
@@ -158,7 +157,6 @@ func Default() *Engine {
 
 	// apply middlewares
 	// TODO
-	utils.ApplyDefaultMiddlewares(engine)
 	return engine
 }
 
