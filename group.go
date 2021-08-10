@@ -43,11 +43,35 @@ func (g *RouterGroup) addRoute(method string, pattern string, handler Handler) {
 }
 
 func (g *RouterGroup) GET(pattern string, handler Handler) {
-	g.addRoute("GET", pattern, handler)
+	g.addRoute(http.MethodGet, pattern, handler)
 }
 
 func (g *RouterGroup) POST(pattern string, handler Handler) {
-	g.addRoute("POST", pattern, handler)
+	g.addRoute(http.MethodPost, pattern, handler)
+}
+
+func (g *RouterGroup) HEAD(pattern string, handler Handler) {
+	g.addRoute(http.MethodHead, pattern, handler)
+}
+
+func (g *RouterGroup) PUT(pattern string, handler Handler) {
+	g.addRoute(http.MethodPut, pattern, handler)
+}
+
+func (g *RouterGroup) DELETE(pattern string, handler Handler) {
+	g.addRoute(http.MethodDelete, pattern, handler)
+}
+
+func (g *RouterGroup) TRACE(pattern string, handler Handler) {
+	g.addRoute(http.MethodTrace, pattern, handler)
+}
+
+func (g *RouterGroup) CONNECT(pattern string, handler Handler) {
+	g.addRoute(http.MethodConnect, pattern, handler)
+}
+
+func (g *RouterGroup) OPTIONS(pattern string, handler Handler) {
+	g.addRoute(http.MethodOptions, pattern, handler)
 }
 
 func (g *RouterGroup) Use(middleWares ...Handler) {

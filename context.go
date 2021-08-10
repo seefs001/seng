@@ -133,7 +133,7 @@ func (c *Context) Set(key string, value interface{}) {
 
 // Get get user value
 func (c *Context) Get(key string) (data interface{}, exists bool) {
-	if _, ok := c.Values[key]; ok {
+	if data, ok := c.Values[key]; ok {
 		return data, true
 	}
 	return nil, false

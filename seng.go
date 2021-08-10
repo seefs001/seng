@@ -170,6 +170,7 @@ func (e *Engine) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 	// ctxPool
 	ctx := e.AcquireCtx().ReSet(w, req)
+	//ctx := NewContext(w, req)
 	ctx.engine = e
 	ctx.router = e.router
 	ctx.handlers = middleWares

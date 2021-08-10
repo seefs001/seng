@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/seefs001/seng"
@@ -8,6 +9,15 @@ import (
 
 func main() {
 	engine := seng.Default()
+	//engine.GET("/:name", func(c *seng.Context) error {
+	//	param, exists := c.Param("name")
+	//	if !exists{
+	//		return c.Text("not found")
+	//	}
+	//	return c.JSON(seng.Map{
+	//		"name":param,
+	//	})
+	//})
 	group := engine.Group("/api")
 	group.GET("/", func(context *seng.Context) error {
 		return context.JSON(seng.Map{
@@ -22,6 +32,7 @@ func main() {
 	})
 	routerGroup.GET("/mv", func(context *seng.Context) error {
 		data, exists := context.Get("x")
+		fmt.Println(exists)
 		if !exists {
 			return context.Text("err")
 		}
