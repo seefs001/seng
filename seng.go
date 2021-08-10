@@ -1,131 +1,223 @@
 package seng
 
 import (
+	"html/template"
 	"net/http"
+	"strings"
 	"sync"
+	"time"
 )
 
+// Version version of seng
+const Version = "0.0.1"
+
+// Handler defines a function to serve HTTP requests.
+type Handler func(c *Context) error
+
+// ErrorHandler defines a function to handle errors
+type ErrorHandler func(c *Context, err error) error
+
+// Map a shortcut for map[string]interface{}
+type Map map[string]interface{}
+
+type Config struct {
+	// Addr "ip:port"
+	Addr string `json:"addr"`
+	// When set to true, the Router treats "/foo" and "/foo/" as different.
+	// Default: false
+	StrictRouting bool `json:"strict_routing"`
+	// Default: 4 * 1024 * 1024
+	BodyLimit int `json:"body_limit"`
+	// Default: unlimited
+	ReadTimeout time.Duration `json:"read_timeout"`
+	// Default: unlimited
+	WriteTimeout time.Duration `json:"write_timeout"`
+	// Default: unlimited
+	IdleTimeout time.Duration `json:"idle_timeout"`
+	// Default: false
+	GETOnly bool `json:"get_only"`
+	// print routes
+	// Default: true
+	Debug bool `json:"debug"`
+	// Default: false
+	DisableKeepalive bool `json:"disable_keepalive"`
+	// ErrorHandler Default: DefaultErrorHandler
+	ErrorHandler ErrorHandler `json:"-"`
+	// NotFoundHandler Default: DefaultNotFoundErrorHandler
+	NotFoundErrorHandler Handler `json:"-"`
+}
+
+// Default Config values
+const (
+	DefaultBodyLimit       = 4 * 1024 * 1024
+	DefaultReadBufferSize  = 4096
+	DefaultWriteBufferSize = 4096
+)
+
+// DefaultErrorHandler default error handler.
+var DefaultErrorHandler = func(c *Context, err error) error {
+	code := http.StatusInternalServerError
+	if e, ok := err.(*Error); ok {
+		code = e.Code
+	}
+	return c.Status(code).Text(err.Error())
+}
+
+var DefaultNotFoundErrorHandler = func(c *Context) error {
+	code := http.StatusNotFound
+	return c.Status(code).Text("404 not found")
+}
+
+// defaultConfig default engine config
+var defaultConfig = Config{
+	StrictRouting:    false,
+	BodyLimit:        DefaultBodyLimit,
+	GETOnly:          false,
+	DisableKeepalive: false,
+	Debug:            true,
+	ErrorHandler:     DefaultErrorHandler,
+}
+
+// Engine struct
 type Engine struct {
-	sync.Mutex
+	mutex sync.Mutex
 
-	CtxPool sync.Pool
-
-	routes    map[string][]*Route
-	treeStack []map[string][]*Route
-	config    Config
+	*RouterGroup
+	config Config
+	// Ctx pool
+	ctxPool       sync.Pool
+	router        *Router
+	groups        []*RouterGroup     // 存储所有分组
+	htmlTemplates *template.Template // 用于 html 渲染
+	funcMap       template.FuncMap
 }
 
-func New(config Config) *Engine {
-
-	e := &Engine{
-		CtxPool: sync.Pool{
-			New: func() interface{} {
-				return NewContext(nil, nil)
-			},
-		},
-		routes: make(map[string][]*Route),
-		config: config,
+// New create a new instance of Engine
+func New(config ...Config) *Engine {
+	engine := &Engine{
+		router: NewRouter(),
+		// context pool
+		ctxPool: sync.Pool{New: func() interface{} {
+			return new(Context)
+		}},
+		config: Config{},
 	}
 
-	return e
+	if len(config) > 0 {
+		engine.config = config[0]
+	}
+
+	// Override default values
+	if engine.config.BodyLimit == 0 {
+		engine.config.BodyLimit = DefaultBodyLimit
+	}
+	if engine.config.ErrorHandler == nil {
+		engine.config.ErrorHandler = DefaultErrorHandler
+	}
+	if engine.config.NotFoundErrorHandler == nil {
+		engine.config.NotFoundErrorHandler = DefaultNotFoundErrorHandler
+	}
+	if engine.config.Debug == false {
+		engine.config.Debug = true
+	}
+	// init Engine
+	engine.init()
+	return engine
 }
 
+// SetMode set server mode
+func (e *Engine) SetMode(mode bool) {
+	e.config.Debug = mode
+}
+
+// SetDebugMode set debug mode
+func (e *Engine) SetDebugMode() {
+	e.config.Debug = ModeDebug
+}
+
+// SetReleaseMode set release mode
+func (e *Engine) SetReleaseMode() {
+	e.config.Debug = ModeRelease
+}
+
+// init engine
+func (e *Engine) init() {
+	// Lock
+	e.mutex.Lock()
+	defer e.mutex.Unlock()
+
+	e.RouterGroup = &RouterGroup{engine: e}
+	e.groups = []*RouterGroup{e.RouterGroup}
+}
+
+// Default engine with default middlewares and config
 func Default() *Engine {
+	engine := New(defaultConfig)
 
-	defaultConfig := Config{
-		StrictRouting: false,
-		CaseSensitive: true,
-		GETOnly:       false,
-		ErrorHandler: func(ctx *Context) error {
-			return ctx.Status(http.StatusInternalServerError).Text("server error")
-		},
-		NotFoundHandler: func(c *Context) error {
-			return c.Status(http.StatusNotFound).Text("not found")
-		},
-		DisableKeepalive: false,
-		AppName:          "Seng Web Application",
-		Addr:             "0.0.0.0:8080",
-	}
-
-	e := New(defaultConfig)
-
-	return e
+	// apply middlewares
+	// TODO
+	return engine
 }
 
-func (e *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ctx := e.CtxPool.Get().(*Context).ReSet(r, w)
-	handlerFuncs, b := e.matchRoute(ctx.method, ctx.path)
-	if !b {
-		err := e.config.NotFoundHandler(ctx)
+// ServeHTTP implements http.Handler
+func (e *Engine) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	var middleWares []Handler
+	// add middlewares
+	for _, group := range e.groups {
+		if strings.HasPrefix(req.URL.Path, group.prefix) {
+			middleWares = append(middleWares, group.middleWares...)
+		}
+	}
+	// ctxPool
+	ctx := e.AcquireCtx().ReSet(w, req)
+	ctx.engine = e
+	ctx.router = e.router
+	ctx.handlers = middleWares
+	// handle request
+	if err := e.router.handle(ctx); err != nil {
+		err := e.config.ErrorHandler(ctx, err)
 		if err != nil {
+			// release
+			e.ReleaseCtx(ctx)
 			return
 		}
 	}
-	for _, h := range handlerFuncs {
-		h(ctx)
-	}
+	// release
+	e.ReleaseCtx(ctx)
 }
 
-func (e *Engine) matchRoute(method string, pattern string) ([]HandlerFunc, bool) {
-	if routes, ok := e.routes[method]; !ok {
-		return nil, false
-	} else {
-		for _, route := range routes {
-			if route.Path == pattern {
-				return route.Handlers, true
-			}
-		}
-		return nil, false
-	}
+// AcquireCtx acquired context from ctxPool
+func (e *Engine) AcquireCtx() *Context {
+	return e.ctxPool.Get().(*Context)
 }
 
-func (e *Engine) Get(pattern string, handler ...HandlerFunc) {
-	e.addRoute(MethodGet, pattern, handler...)
+func (e *Engine) ReleaseCtx(ctx *Context) {
+	// clean
+	ctx.Writer = nil
+	ctx.Request = nil
+	ctx.handlers = nil
+	// put to ctxPool
+	e.ctxPool.Put(ctx)
+	return
 }
 
-func (e *Engine) Head(pattern string, handler ...HandlerFunc) {
-	e.addRoute(MethodHead, pattern, handler...)
+// Listen serve seng instance
+func (e *Engine) Listen(addr string) (err error) {
+	// set addr to config
+	e.config.Addr = addr
+	// http serve
+	return http.ListenAndServe(addr, e)
 }
 
-func (e *Engine) Post(pattern string, handler ...HandlerFunc) {
-	e.addRoute(MethodPost, pattern, handler...)
+// Config get engine config
+func (e *Engine) Config() Config {
+	return e.config
 }
 
-func (e *Engine) Put(pattern string, handler ...HandlerFunc) {
-	e.addRoute(MethodPut, pattern, handler...)
-}
-
-func (e *Engine) Patch(pattern string, handler ...HandlerFunc) {
-	e.addRoute(MethodPatch, pattern, handler...)
-}
-
-func (e *Engine) Delete(pattern string, handler ...HandlerFunc) {
-	e.addRoute(MethodDelete, pattern, handler...)
-}
-
-func (e *Engine) Connect(pattern string, handler ...HandlerFunc) {
-	e.addRoute(MethodConnect, pattern, handler...)
-}
-
-func (e *Engine) Trace(pattern string, handler ...HandlerFunc) {
-	e.addRoute(MethodTrace, pattern, handler...)
-}
-
-func (e *Engine) Options(pattern string, handler ...HandlerFunc) {
-	e.addRoute(MethodOptions, pattern, handler...)
-}
-
-func (e *Engine) addRoute(method string, pattern string, handler ...HandlerFunc) {
-	e.routes[method] = append(e.routes[method], &Route{
-		Method:   method,
-		Path:     pattern,
-		Handlers: handler,
-	})
-}
-
-func (e *Engine) Run(addr ...string) error {
-	if addr == nil {
-		addr[0] = e.config.Addr
-	}
-	return http.ListenAndServe(addr[0], e)
+// ShutDown clean resources
+func (e *Engine) ShutDown() (err error) {
+	// Lock
+	e.mutex.Lock()
+	defer e.mutex.Unlock()
+	return
 }

@@ -1,2 +1,4 @@
-# Seng (Seefs-Engine)
-基于Golang HTTP 标准库实现的玩具Web框架，请勿用于生产环境。
+# seng
+
+Web framework based on net/http, only for learning purposes
+

@@ -1,17 +1,34 @@
 package main
 
-import "github.com/seefs001/seng"
+import (
+	"log"
+
+	"github.com/seefs001/seng"
+)
 
 func main() {
 	engine := seng.Default()
-	engine.Get("/ping", func(c *seng.Context) error {
-		return c.Text("pong")
-	})
-	engine.Get("/test", func(c *seng.Context) error {
-		return c.Json(seng.Response{
-			Code:    1,
-			Message: "success",
+	group := engine.Group("/api")
+	group.GET("/", func(context *seng.Context) error {
+		return context.JSON(seng.Map{
+			"xx": " xxx",
 		})
 	})
-	engine.Run(":8080")
+	routerGroup := group.Group("/test")
+	routerGroup.Use(func(context *seng.Context) error {
+		context.Set("x", "xxx")
+		log.Default().Println("mv")
+		return nil
+	})
+	routerGroup.GET("/mv", func(context *seng.Context) error {
+		data, exists := context.Get("x")
+		if !exists {
+			return context.Text("err")
+		}
+		return context.JSON(seng.Map{
+			"x":   "mv",
+			"ctx": data,
+		})
+	})
+	log.Fatal(engine.Listen(":8080"))
 }
