@@ -1,3 +1,3 @@
 module github.com/seefs001/seng
 
-go 1.17
+go 1.14

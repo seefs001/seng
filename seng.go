@@ -93,6 +93,7 @@ type Engine struct {
 	config Config
 	// Ctx pool
 	ctxPool       sync.Pool
+	validatorPool sync.Pool
 	router        *Router
 	groups        []*RouterGroup     // 存储所有分组
 	htmlTemplates *template.Template // 用于 html 渲染
@@ -106,6 +107,9 @@ func New(config ...Config) *Engine {
 		// context pool
 		ctxPool: sync.Pool{New: func() interface{} {
 			return new(Context)
+		}},
+		validatorPool: sync.Pool{New: func() interface{} {
+			return new(Validator)
 		}},
 		config: Config{},
 	}

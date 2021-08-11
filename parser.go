@@ -2,7 +2,7 @@ package seng
 
 import (
 	"encoding/json"
-	"io"
+	"io/ioutil"
 	"strings"
 )
 
@@ -12,7 +12,7 @@ func (c *Context) BodyParser(out interface{}) (err error) {
 	// json parser
 	if strings.HasPrefix(contentType, MINEApplicationJSON) {
 		// read data from request
-		data, err := io.ReadAll(c.Request.Body)
+		data, err := ioutil.ReadAll(c.Request.Body)
 		if err != nil {
 			return err
 		}

@@ -46,7 +46,7 @@ func main() {
 		})
 	})
 	type TestRequest struct {
-		Username string `json:"username"`
+		Username string `json:"username" validate:"required#please input username.|min=1#please enter the legal parameters"`
 		Password string `json:"password"`
 	}
 	routerGroup.POST("/parser", func(c *seng.Context) error {
@@ -54,6 +54,12 @@ func main() {
 		err := c.BodyParser(req)
 		if err != nil {
 			return err
+		}
+		err = c.Validate(*req)
+		if err != nil {
+			return c.JSON(seng.Map{
+				"error": err.Error(),
+			})
 		}
 		return c.JSON(seng.Map{
 			"username": req.Username,
