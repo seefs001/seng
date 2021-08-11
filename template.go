@@ -2,12 +2,12 @@ package seng
 
 import "html/template"
 
-// 设置 funcMap
+// SetFuncMap set template.FuncMap
 func (e *Engine) SetFuncMap(funcMap template.FuncMap) {
 	e.funcMap = funcMap
 }
 
-// 渲染函数
+// LoadHTMLGlob parse glob
 func (e *Engine) LoadHTMLGlob(pattern string) {
 	e.htmlTemplates = template.Must(template.New("").Funcs(e.funcMap).ParseGlob(pattern))
 }

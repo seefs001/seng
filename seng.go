@@ -39,6 +39,10 @@ type Config struct {
 	// print routes
 	// Default: true
 	Debug bool `json:"debug"`
+	// Cookie
+	// http.SameSiteStrictMode http.SameSiteLaxMode http.SameSiteNoneMode
+	// http.SameSiteNoneMode must set secure to true
+	CookieSameSite http.SameSite `json:"cookie_same_site"`
 	// Default: false
 	DisableKeepalive bool `json:"disable_keepalive"`
 	// ErrorHandler Default: DefaultErrorHandler
@@ -52,6 +56,7 @@ const (
 	DefaultBodyLimit       = 4 * 1024 * 1024
 	DefaultReadBufferSize  = 4096
 	DefaultWriteBufferSize = 4096
+	DefaultCookieSameSite  = http.SameSiteLaxMode
 )
 
 // DefaultErrorHandler default error handler.
@@ -75,6 +80,7 @@ var defaultConfig = Config{
 	GETOnly:              false,
 	DisableKeepalive:     false,
 	Debug:                true,
+	CookieSameSite:       DefaultCookieSameSite,
 	ErrorHandler:         DefaultErrorHandler,
 	NotFoundErrorHandler: DefaultNotFoundErrorHandler,
 }
@@ -120,6 +126,9 @@ func New(config ...Config) *Engine {
 	}
 	if engine.config.Debug == false {
 		engine.config.Debug = true
+	}
+	if engine.config.CookieSameSite == 0 {
+		engine.config.CookieSameSite = http.SameSiteLaxMode
 	}
 	// init Engine
 	engine.init()

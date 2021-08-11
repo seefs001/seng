@@ -106,6 +106,11 @@ func (c *Context) GetHeader(key string, defaultValue ...string) string {
 	return defaultString(c.Request.Header.Get(key), defaultValue)
 }
 
+// GetContentType get content type
+func (c *Context) GetContentType() string {
+	return c.GetHeader(HeaderContentType)
+}
+
 // SetHeader set header
 func (c *Context) SetHeader(key string, value string) {
 	c.Writer.Header().Set(key, value)
