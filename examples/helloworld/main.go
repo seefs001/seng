@@ -20,6 +20,13 @@ func main() {
 			"name": param,
 		})
 	})
+	engine.GET("/header", func(c *seng.Context) error {
+		c.SetHeader("X-token", "token value")
+		header := c.GetHeader("X-token")
+		return c.JSON(seng.Map{
+			"token": header,
+		})
+	})
 	group := engine.Group("/api")
 	group.GET("/", func(context *seng.Context) error {
 		return context.JSON(seng.Map{
@@ -30,7 +37,7 @@ func main() {
 	routerGroup.Use(func(context *seng.Context) error {
 		context.Set("x", "xxx")
 		log.Default().Println("mv")
-		return nil
+		return context.Next()
 	})
 	routerGroup.Use(cors.Default())
 	routerGroup.Use(recovery.Default())

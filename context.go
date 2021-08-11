@@ -106,6 +106,13 @@ func (c *Context) GetHeader(key string, defaultValue ...string) string {
 	return defaultString(c.Request.Header.Get(key), defaultValue)
 }
 
+// DelHeader del value from header
+func (c *Context) DelHeader(key string) {
+	c.Request.Header.Del(key)
+	c.Writer.Header().Del(key)
+	return
+}
+
 // GetContentType get content type
 func (c *Context) GetContentType() string {
 	return c.GetHeader(HeaderContentType)
@@ -113,11 +120,13 @@ func (c *Context) GetContentType() string {
 
 // SetHeader set header
 func (c *Context) SetHeader(key string, value string) {
+	c.Request.Header.Set(key, value)
 	c.Writer.Header().Set(key, value)
 }
 
 // RemoveHeader remove specific key header
 func (c *Context) RemoveHeader(key string) {
+	c.Request.Header.Del(key)
 	c.Writer.Header().Del(key)
 }
 
