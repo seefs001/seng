@@ -6,11 +6,13 @@ import (
 
 	"github.com/seefs001/seng"
 	"github.com/seefs001/seng/middlewares/cors"
+	"github.com/seefs001/seng/middlewares/logger"
 	"github.com/seefs001/seng/middlewares/recovery"
 )
 
 func main() {
 	engine := seng.Default()
+	engine.Use(logger.Default())
 	engine.GET("/param/:name", func(c *seng.Context) error {
 		param, exists := c.Param("name")
 		if !exists {

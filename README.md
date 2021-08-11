@@ -27,6 +27,20 @@ g.GET("/ping", func(c *seng.Context) error {
 })
 ```
 
+## Path Params
+
+```go
+e.GET("/param/:name", func(c *seng.Context) error {
+   param, exists := c.Param("name")
+   if !exists {
+      return c.Text("not found")
+   }
+   return c.JSON(seng.Map{
+      "name": param,
+   })
+})
+```
+
 ## Middleware & c.Next() & c.Get()/Set()
 
 ```go
@@ -47,11 +61,12 @@ g.GET("/mv", func(context *seng.Context) error {
 })
 ```
 
-default middleware
+internal middleware
 
 ```go
 g.Use(cors.Default())
 g.Use(recovery.Default())
+g.Use(logger.Default())
 ```
 
 Tips: If you need other middleware, please write it yourself.
