@@ -124,6 +124,29 @@ e.GET("/header", func(c *seng.Context) error {
 })
 ```
 
+## Adapter
+
+```go
+testService := service.NewTestService()
+handler := NewTestHandler(testService)
+engine.GET("/pet",seng.AdapterHandlerFunc(handler.AddPet))
+```
+
+## Render
+
+```go
+func (t *TestHandler) AddPet(writer http.ResponseWriter, request *http.Request) {
+   pets, err := t.service.AddPet(request.Context(), model.NewPet{
+      Name: "1",
+      Tag:  "1",
+   })
+   if err != nil {
+      seng.RenderInternalServerError(writer, request, err)
+   }
+   seng.Render(writer, request, http.StatusOK, pets)
+}
+```
+
 ## Seng Config
 
 ```go

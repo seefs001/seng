@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/seefs001/seng"
+	"github.com/seefs001/seng/examples/helloworld/service"
 	"github.com/seefs001/seng/middlewares/cors"
 	"github.com/seefs001/seng/middlewares/logger"
 	"github.com/seefs001/seng/middlewares/recovery"
@@ -13,6 +14,8 @@ import (
 func main() {
 	engine := seng.Default()
 	engine.Use(logger.Default())
+	engine.Use(cors.Default())
+	engine.Use(recovery.Default())
 	engine.GET("/param/:name", func(c *seng.Context) error {
 		param, exists := c.Param("name")
 		if !exists {
@@ -22,6 +25,11 @@ func main() {
 			"name": param,
 		})
 	})
+
+	testService := service.NewTestService()
+	handler := NewTestHandler(testService)
+	engine.GET("/pets", seng.AdapterHandlerFunc(handler.AddPet))
+
 	engine.GET("/header", func(c *seng.Context) error {
 		c.SetHeader("X-token", "token value")
 		header := c.GetHeader("X-token")
@@ -41,8 +49,6 @@ func main() {
 		log.Default().Println("mv")
 		return context.Next()
 	})
-	routerGroup.Use(cors.Default())
-	routerGroup.Use(recovery.Default())
 	routerGroup.GET("/mv", func(context *seng.Context) error {
 		data, exists := context.Get("x")
 		fmt.Println(exists)

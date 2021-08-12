@@ -6,6 +6,12 @@ const (
 	MIMETextPlainCharsetUTF8 = "text/plain; charset=utf-8"
 	MINEApplicationJSON      = "application/json"
 	MINETextHTML             = "text/html"
+	ContentTypeJson          = "application/json"
+	ContentTypeTextPlain     = "text/plain"
+	ContentTypeTextHtml      = "text/html"
+	ContentTypeXml           = "application/xml"
+	CharsetSuffix            = "; charset=utf-8"
+	HeaderAccept             = "Accept"
 )
 
 // limits for HTTP statuscodes
