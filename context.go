@@ -262,3 +262,18 @@ func (c *Context) Next() error {
 	}
 	return nil
 }
+
+type Response struct {
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data,omitempty"`
+	Error   string      `json:"error,omitempty"`
+}
+
+func (c *Context) JSONResponse(code int, msg string, data interface{}) error {
+	return c.Status(http.StatusOK).JSON(Response{
+		Code:    code,
+		Message: msg,
+		Data:    data,
+	})
+}

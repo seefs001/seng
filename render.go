@@ -8,14 +8,14 @@ import (
 	"net/http"
 )
 
-type Response struct {
+type HTTPResponse struct {
 	Code   int         `json:"code" xml:"code"`                         // http response status code
 	Status string      `json:"status" xml:"status"`                     // user-level status message
 	Errors interface{} `json:"errors,omitempty" xml:"errors,omitempty"` // application-level error messages, for debugging
 }
 
-func NewResponse(code int, err interface{}) Response {
-	r := Response{
+func NewHTTPResponse(code int, err interface{}) HTTPResponse {
+	r := HTTPResponse{
 		Code:   code,
 		Status: http.StatusText(code),
 		Errors: err,
@@ -24,7 +24,7 @@ func NewResponse(code int, err interface{}) Response {
 }
 
 func RenderBadRequest(w http.ResponseWriter, r *http.Request, err interface{}) {
-	resp := NewResponse(http.StatusBadRequest, err)
+	resp := NewHTTPResponse(http.StatusBadRequest, err)
 	Render(w, r, resp.Code, resp)
 }
 
@@ -33,12 +33,12 @@ func RenderCreated(w http.ResponseWriter, r *http.Request, err interface{}) {
 }
 
 func RenderForbidden(w http.ResponseWriter, r *http.Request, err interface{}) {
-	resp := NewResponse(http.StatusForbidden, err)
+	resp := NewHTTPResponse(http.StatusForbidden, err)
 	Render(w, r, resp.Code, resp)
 }
 
 func RenderInternalServerError(w http.ResponseWriter, r *http.Request, err interface{}) {
-	resp := NewResponse(http.StatusInternalServerError, err)
+	resp := NewHTTPResponse(http.StatusInternalServerError, err)
 	Render(w, r, resp.Code, resp)
 }
 
@@ -47,12 +47,12 @@ func RenderNoContent(w http.ResponseWriter) {
 }
 
 func RenderNotFound(w http.ResponseWriter, r *http.Request, err interface{}) {
-	resp := NewResponse(http.StatusNotFound, err)
+	resp := NewHTTPResponse(http.StatusNotFound, err)
 	Render(w, r, resp.Code, resp)
 }
 
 func RenderUnauthorized(w http.ResponseWriter, r *http.Request, err interface{}) {
-	resp := NewResponse(http.StatusUnauthorized, err)
+	resp := NewHTTPResponse(http.StatusUnauthorized, err)
 	Render(w, r, resp.Code, resp)
 }
 
