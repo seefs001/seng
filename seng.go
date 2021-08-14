@@ -57,6 +57,7 @@ const (
 	DefaultReadBufferSize  = 4096
 	DefaultWriteBufferSize = 4096
 	DefaultCookieSameSite  = http.SameSiteLaxMode
+	DefaultListenAddr      = ":8080"
 )
 
 // DefaultErrorHandler default error handler.
@@ -217,11 +218,14 @@ func (e *Engine) ReleaseCtx(ctx *Context) {
 }
 
 // Listen serve seng instance
-func (e *Engine) Listen(addr string) (err error) {
+func (e *Engine) Listen(address ...string) (err error) {
+	if len(address) == 0 {
+		e.config.Addr = DefaultListenAddr
+	}
 	// set addr to config
-	e.config.Addr = addr
+	e.config.Addr = address[0]
 	// http serve
-	return http.ListenAndServe(addr, e)
+	return http.ListenAndServe(e.config.Addr, e)
 }
 
 // Config get engine config
@@ -234,5 +238,6 @@ func (e *Engine) ShutDown() (err error) {
 	// Lock
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
+	// TODO graceful down
 	return
 }
