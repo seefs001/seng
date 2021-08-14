@@ -9,7 +9,7 @@ import (
 )
 
 // Version version of seng
-const Version = "0.0.1"
+const Version = "0.0.2"
 
 // Handler defines a function to serve HTTP requests.
 type Handler func(c *Context) error
@@ -95,8 +95,8 @@ type Engine struct {
 	ctxPool       sync.Pool
 	validatorPool sync.Pool
 	router        *Router
-	groups        []*RouterGroup     // 存储所有分组
-	htmlTemplates *template.Template // 用于 html 渲染
+	groups        []*RouterGroup
+	htmlTemplates *template.Template
 	funcMap       template.FuncMap
 }
 

@@ -5,6 +5,7 @@ const (
 	HeaderContentType        = "Content-Type"
 	MIMETextPlainCharsetUTF8 = "text/plain; charset=utf-8"
 	MINEApplicationJSON      = "application/json"
+	MINEApplicationProtobuf  = "application/protobuf"
 	MINETextHTML             = "text/html"
 	ContentTypeJson          = "application/json"
 	ContentTypeTextPlain     = "text/plain"

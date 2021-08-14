@@ -21,5 +21,6 @@ func (c *Context) BodyParser(out interface{}) (err error) {
 			return err
 		}
 	}
+	//TODO form parser,query parser
 	return
 }

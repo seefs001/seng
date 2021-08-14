@@ -15,6 +15,10 @@ const (
 	SplitTagMessage  = "#"
 )
 
+const (
+	ValidateRequired = "required"
+)
+
 func (c *Context) Validate(data interface{}) error {
 	validator := c.engine.validatorPool.Get().(*Validator)
 	defer c.engine.validatorPool.Put(validator)
@@ -50,7 +54,7 @@ func validate(data, tags string) (bool, string) {
 	for _, param := range params {
 		tagAndMsg := strings.Split(param, SplitTagMessage)
 		// required
-		if tagAndMsg[0] == "required" {
+		if tagAndMsg[0] == ValidateRequired {
 			if data == "" {
 				return false, tagAndMsg[1]
 			}

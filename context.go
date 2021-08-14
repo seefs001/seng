@@ -211,6 +211,12 @@ func (c *Context) JSON(obj interface{}) (err error) {
 	return
 }
 
+// Protobuf return protobuf
+func (c *Context) Protobuf(data []byte) error {
+	c.SetHeader(HeaderContentType, MINEApplicationProtobuf)
+	return c.Data(data)
+}
+
 // Data return []byte Data
 func (c *Context) Data(data []byte) (err error) {
 	_, err = c.Writer.Write(data)
@@ -270,6 +276,7 @@ type Response struct {
 	Error   string      `json:"error,omitempty"`
 }
 
+// JSONResponse return json response with status 200
 func (c *Context) JSONResponse(code int, msg string, data interface{}) error {
 	return c.Status(http.StatusOK).JSON(Response{
 		Code:    code,
