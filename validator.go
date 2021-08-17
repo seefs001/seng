@@ -53,6 +53,7 @@ func validate(data, tags string) (bool, string) {
 	params := splitParams(tags)
 	for _, param := range params {
 		tagAndMsg := strings.Split(param, SplitTagMessage)
+		// TODO more validator
 		// required
 		if tagAndMsg[0] == ValidateRequired {
 			if data == "" {

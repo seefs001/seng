@@ -2,7 +2,6 @@ package seng
 
 import (
 	"errors"
-	"log"
 	"net/http"
 	"path"
 )
@@ -35,9 +34,14 @@ func (g *RouterGroup) Group(prefix string) *RouterGroup {
 
 // addRoute add route to router
 func (g *RouterGroup) addRoute(method string, pattern string, handler Handler) {
+	// get only config
+	if g.engine.config.GETOnly && method != http.MethodGet {
+		return
+	}
 	pattern = g.prefix + pattern
+	// print routes
 	if g.engine.config.Debug {
-		log.Printf("Route %4s - %s", method, pattern)
+		g.engine.Logger.Printf("Route %4s - %s", method, pattern)
 	}
 	g.engine.router.addRoute(method, pattern, handler)
 }

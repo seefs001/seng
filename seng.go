@@ -2,6 +2,7 @@ package seng
 
 import (
 	"html/template"
+	"log"
 	"net/http"
 	"strings"
 	"sync"
@@ -34,6 +35,8 @@ type Config struct {
 	WriteTimeout time.Duration `json:"write_timeout"`
 	// Default: unlimited
 	IdleTimeout time.Duration `json:"idle_timeout"`
+	// Default: unlimited
+	ReadHeaderTimeout time.Duration `json:"read_header_timeout"`
 	// Default: false
 	GETOnly bool `json:"get_only"`
 	// print routes
@@ -49,6 +52,9 @@ type Config struct {
 	ErrorHandler ErrorHandler `json:"-"`
 	// NotFoundHandler Default: DefaultNotFoundErrorHandler
 	NotFoundErrorHandler Handler `json:"-"`
+	// seng version
+	SengVersion string      `json:"seng_version"`
+	Logger      *log.Logger `json:"logger"`
 }
 
 // Default Config values
@@ -76,6 +82,7 @@ var DefaultNotFoundErrorHandler = func(c *Context) error {
 
 // defaultConfig default engine config
 var defaultConfig = Config{
+	Logger:               log.Default(),
 	StrictRouting:        false,
 	BodyLimit:            DefaultBodyLimit,
 	GETOnly:              false,
@@ -89,14 +96,17 @@ var defaultConfig = Config{
 // Engine struct
 type Engine struct {
 	mutex sync.Mutex
-
+	// router
 	*RouterGroup
 	config Config
+	Logger *log.Logger
 	// Ctx pool
-	ctxPool       sync.Pool
+	ctxPool sync.Pool
+	// Validator Pool
 	validatorPool sync.Pool
 	router        *Router
 	groups        []*RouterGroup
+	// template
 	htmlTemplates *template.Template
 	funcMap       template.FuncMap
 }
@@ -135,6 +145,12 @@ func New(config ...Config) *Engine {
 	if engine.config.CookieSameSite == 0 {
 		engine.config.CookieSameSite = http.SameSiteLaxMode
 	}
+	if engine.Logger == nil {
+		logger := log.Default()
+		engine.config.Logger = logger
+		engine.Logger = logger
+	}
+	engine.config.SengVersion = Version
 	// init Engine
 	engine.init()
 	return engine
@@ -161,6 +177,12 @@ func (e *Engine) init() {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
 
+	// debug print info
+	if e.config.Debug {
+		e.Logger.Printf("Seng version: %s", e.config.SengVersion)
+		e.Logger.Printf("Disable keepalive: %t", e.config.DisableKeepalive)
+		e.Logger.Printf("GETOnly: %t", e.config.GETOnly)
+	}
 	e.RouterGroup = &RouterGroup{engine: e}
 	e.groups = []*RouterGroup{e.RouterGroup}
 }
@@ -169,8 +191,6 @@ func (e *Engine) init() {
 func Default() *Engine {
 	engine := New(defaultConfig)
 
-	// apply middlewares
-	// TODO
 	return engine
 }
 
@@ -225,8 +245,21 @@ func (e *Engine) Listen(address ...string) (err error) {
 		// set addr to config
 		e.config.Addr = address[0]
 	}
+	s := http.Server{
+		Addr:              e.config.Addr,
+		Handler:           e,
+		ReadTimeout:       e.config.ReadTimeout,
+		ReadHeaderTimeout: e.config.ReadHeaderTimeout,
+		WriteTimeout:      e.config.WriteTimeout,
+		IdleTimeout:       e.config.IdleTimeout,
+	}
+	// disable keepalive
+	s.SetKeepAlivesEnabled(!e.config.DisableKeepalive)
+	if e.config.Debug {
+		e.Logger.Printf("Listening on %s", e.config.Addr)
+	}
 	// http serve
-	return http.ListenAndServe(e.config.Addr, e)
+	return s.ListenAndServe()
 }
 
 // Config get engine config

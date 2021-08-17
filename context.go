@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"mime/multipart"
 	"net/http"
+	"strconv"
 )
 
 // Context represents the Context which hold the HTTP request and response.
@@ -155,7 +156,6 @@ func (c *Context) Get(key string) (data interface{}, exists bool) {
 
 // MultipartForm request multipart form
 func (c *Context) MultipartForm() *multipart.Form {
-	c.Request.Referer()
 	return c.Request.MultipartForm
 }
 
@@ -168,9 +168,10 @@ func (c *Context) Refer() string {
 func (c *Context) String() string {
 	// TODO
 	return fmt.Sprintf(
-		"%s <-> %s",
+		"%s <-> %s seng version： %s",
 		c.Request.Host,
 		c.Request.RemoteAddr,
+		c.engine.config.SengVersion,
 	)
 }
 
@@ -252,6 +253,40 @@ func (c *Context) Param(key string, defaultValue ...string) (string, bool) {
 		}
 	}
 	return value, true
+}
+
+// ParamsInt param -> int
+func (c *Context) ParamsInt(key string, defaultValue ...int) (int, bool) {
+	param, ok := c.Param(key)
+	if !ok {
+		if len(defaultValue) == 0 {
+			return 0, false
+		} else {
+			return defaultValue[0], true
+		}
+	}
+	paramInt, err := strconv.Atoi(param)
+	if err != nil {
+		return 0, false
+	}
+	return paramInt, true
+}
+
+// ParamsInt64 param -> int64
+func (c *Context) ParamsInt64(key string, defaultValue ...int64) (int64, bool) {
+	param, ok := c.Param(key)
+	if !ok {
+		if len(defaultValue) == 0 {
+			return 0, false
+		} else {
+			return defaultValue[0], true
+		}
+	}
+	paramInt64, err := strconv.ParseInt(param, 10, 64)
+	if err != nil {
+		return 0, false
+	}
+	return paramInt64, true
 }
 
 // Next middleware
