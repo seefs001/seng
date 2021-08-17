@@ -10,7 +10,7 @@ import (
 )
 
 // Version version of seng
-const Version = "0.0.3"
+const Version = "v0.0.4"
 
 // Handler defines a function to serve HTTP requests.
 type Handler func(c *Context) error

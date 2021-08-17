@@ -55,6 +55,7 @@ func (c *Context) init(w http.ResponseWriter, req *http.Request) {
 	c.HostName = req.Host
 	c.Values = make(map[string]interface{})
 	c.indexHandler = -1
+	c.userContext = context.Background()
 }
 
 // ReSet context from w,req
