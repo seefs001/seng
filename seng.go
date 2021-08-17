@@ -221,9 +221,10 @@ func (e *Engine) ReleaseCtx(ctx *Context) {
 func (e *Engine) Listen(address ...string) (err error) {
 	if len(address) == 0 {
 		e.config.Addr = DefaultListenAddr
+	} else {
+		// set addr to config
+		e.config.Addr = address[0]
 	}
-	// set addr to config
-	e.config.Addr = address[0]
 	// http serve
 	return http.ListenAndServe(e.config.Addr, e)
 }
