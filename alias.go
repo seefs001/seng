@@ -2,16 +2,16 @@ package seng
 
 // HTTP header
 const (
-	HeaderContentType        = "content-type"
-	MIMETextPlainCharsetUTF8 = "text/plain; charset=utf-8"
-	MINEApplicationJSON      = "application/json"
-	MINEApplicationProtobuf  = "application/protobuf"
-	MINETextHTML             = "text/html"
+	HeaderContentType        = "Content-Type"
+	MIMETextPlainCharsetUTF8 = "text/plain;charset=utf-8"
+	MINEApplicationJSON      = "application/json;charset=utf-8"
+	MINEApplicationProtobuf  = "application/protobuf;charset=utf-8"
+	MINETextHTML             = "text/html;charset=utf-8"
 	ContentTypeJson          = "application/json"
 	ContentTypeTextPlain     = "text/plain"
 	ContentTypeTextHtml      = "text/html"
 	ContentTypeXml           = "application/xml"
-	CharsetSuffix            = "; charset=utf-8"
+	CharsetSuffix            = ";charset=utf-8"
 	HeaderAccept             = "Accept"
 )
 

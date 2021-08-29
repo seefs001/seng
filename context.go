@@ -320,3 +320,8 @@ func (c *Context) JSONResponse(code int, msg string, data interface{}) error {
 		Data:    data,
 	})
 }
+
+// SetContentType set content type to application/json text/plain
+func (c *Context) SetContentType(contentType string) {
+	c.SetHeader(HeaderContentType, contentType)
+}
