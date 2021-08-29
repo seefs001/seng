@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// Version version of seng
+// Version of seng
 const Version = "v0.0.4"
 
 // Handler defines a function to serve HTTP requests.
@@ -260,6 +260,11 @@ func (e *Engine) Listen(address ...string) (err error) {
 	}
 	// http serve
 	return s.ListenAndServe()
+}
+
+// Run alias Listen
+func (e *Engine) Run(address ...string) error {
+	return e.Listen(address...)
 }
 
 // Config get engine config

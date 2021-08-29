@@ -2,7 +2,7 @@ package seng
 
 // HTTP header
 const (
-	HeaderContentType        = "Content-Type"
+	HeaderContentType        = "content-type"
 	MIMETextPlainCharsetUTF8 = "text/plain; charset=utf-8"
 	MINEApplicationJSON      = "application/json"
 	MINEApplicationProtobuf  = "application/protobuf"

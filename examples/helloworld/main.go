@@ -26,6 +26,51 @@ func main() {
 		})
 	})
 
+	router := engine.Group("/api")
+
+	router.POST("/user/login", func(c *seng.Context) error {
+		type LoginParams struct {
+			Username string `json:"username"`
+			Password string `json:"password"`
+		}
+		var params LoginParams
+		if err := c.BodyParser(&params); err != nil {
+			return c.JSON(seng.Map{
+				"code":    400,
+				"message": "params error",
+			})
+		}
+
+		if !(params.Username == "seefs" && params.Password == "123456") {
+			return c.JSONResponse(400, "username or password incorrect", nil)
+		}
+		return c.JSONResponse(200, "success", seng.Map{
+			"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmb28iOiJiYXIiLCJuYmYiOjE0NDQ0Nzg0MDB9.u1riaD1rW97opCoAuRCTy4w58Br-Zk-bh7vLiRIsrpU",
+		})
+	})
+
+	router.Use(func(c *seng.Context) error {
+		if c.GetHeader("X-Token") != "" {
+			return c.Fail(403, "请先登录")
+		}
+		return c.Next()
+	})
+
+	router.GET("/category", func(c *seng.Context) error {
+		type Category struct {
+			Id   int    `json:"id"`
+			Name string `json:"name"`
+		}
+		categories := []Category{
+			{1, "分类1"},
+			{2, "分类2"},
+			{3, "分类3"},
+			{4, "分类4"},
+		}
+
+		return c.JSONResponse(200, "success", categories)
+	})
+
 	testService := service.NewTestService()
 	handler := NewTestHandler(testService)
 	engine.GET("/pets", seng.AdapterHandlerFunc(handler.AddPet))
